@@ -2,7 +2,7 @@ import puppeteer from "puppeteer";
 import sqlite3 from 'sqlite3';
 
 async function insertProductsIntoDatabase(products) {
-  const db = new sqlite3.Database('AuchanProducts.db');
+  const db = new sqlite3.Database('./AuchanProducts.db');
 
   db.serialize(() => {
     db.run(`CREATE TABLE IF NOT EXISTS products (
@@ -14,13 +14,14 @@ async function insertProductsIntoDatabase(products) {
           old_price TEXT,
           discount TEXT,
           loyalty_discount TEXT,
-          availability TEXT
+          availability TEXT,
+          image_url TEXT
       )`);
 
-    const insertStmt = db.prepare(`INSERT INTO products (name, brand, quantity, price, old_price, discount, loyalty_discount, availability) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`);
+    const insertStmt = db.prepare(`INSERT INTO products (name, brand, quantity, price, old_price, discount, loyalty_discount, availability, image_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`);
     for (const product of products) {
-      const { name, brand, quantity, price, oldPrice, discount, loyaltyDiscount, availability } = product;
-      insertStmt.run(name, brand, quantity, price, oldPrice, discount, loyaltyDiscount, availability);
+      const { name, brand, quantity, price, oldPrice, discount, loyaltyDiscount, availability, image_url } = product;
+      insertStmt.run(name, brand, quantity, price, oldPrice, discount, loyaltyDiscount, availability, image_url);
     }
     insertStmt.finalize();
 
@@ -35,7 +36,7 @@ async function insertProductsIntoDatabase(products) {
 
 async function deleteAllProducts() {
   return new Promise((resolve, reject) => {
-    const db = new sqlite3.Database('AuchanProducts.db', (err) => {
+    const db = new sqlite3.Database('./AuchanProducts.db', (err) => {
       if (err) {
         console.error('Error opening database:', err);
         reject(err);
@@ -70,6 +71,7 @@ async function scrapeProducts(page, brandNames) {
       const productOldPriceElement = productTile.querySelector('.vtex-product-price-1-x-listPrice');
       const discountInfoElement = productTile.querySelector('.auchan-loyalty-0-x-listDiscountPercentage');
       const loyaltyDiscountInfoElement = productTile.querySelector('.auchan-loyalty-0-x-trigger .auchan-loyalty-0-x-discountFlag');
+      const imageElement = productTile.querySelector('.vtex-product-summary-2-x-imageNormal');
 
       if (productNameElement && productAvailabilityElement && productPriceElement) {
         let productName = productNameElement.innerText.trim();
@@ -80,11 +82,12 @@ async function scrapeProducts(page, brandNames) {
           brand = brandNames.find(brandName => productName.toLowerCase().includes(brandName.toLowerCase()));
         }
 
-        const quantityMatches = productName.match(/(\d+(\.\d+)?)\s*(x\s*\d+(\.\d+)?)?\s*(g|kg|l|ml|plicuri|bucati)\b/gi);
+        const quantityPattern = /(\d+(\.\d+)?\s*(x\s*\d+(\.\d+)?)?\s*(g|kg|l|ml|plicuri|bucati|capsule|bauturi|buc)\b)|(\d+\s*(in)?\s*\d+\s*(in)?\s*\d+)/gi;
+        const quantityMatches = productName.match(quantityPattern);
         if (quantityMatches) {
           productQuantity = quantityMatches.join(', ');
 
-          productName = productName.replace(/,?\s*(\d+(\.\d+)?)\s*(x\s*\d+(\.\d+)?)?\s*(g|kg|l|ml|plicuri|bucati)\b/gi, '').trim();
+          productName = productName.replace(quantityPattern, '').trim();
         }
 
         if (productQuantity == null) {
@@ -104,6 +107,7 @@ async function scrapeProducts(page, brandNames) {
         const productAvailability = productAvailabilityElement.innerText.trim();
         const productPrice = productPriceElement.innerText.trim();
         const productOldPrice = productOldPriceElement ? productOldPriceElement.innerText.trim() : null;
+        const imageUrl = imageElement.src;
 
         let discountPercentage = null;
         let loyaltyDiscountPercentage = null;
@@ -114,9 +118,10 @@ async function scrapeProducts(page, brandNames) {
           loyaltyDiscountPercentage = loyaltyDiscountInfoElement.querySelector('.auchan-loyalty-0-x-discountPercentage').innerText.trim();
         }
 
-        let modifiedPrice = productPrice.replace('lei', '').trim();
-        let modifiedOldPrice = productOldPrice ? productOldPrice.replace('lei', '').trim() : null;
+        let modifiedPrice = parseFloat(productPrice.replace('lei', '').trim().replace(',', '.'));
+        let modifiedOldPrice = productOldPrice ? parseFloat(productOldPrice.replace('lei', '').trim().replace(',', '.')) : null;
 
+        //productQuantity = productQuantity ? productQuantity.replace(/\s+/g, '').toLowerCase() : null;
 
         const product = {
           name: productName,
@@ -127,6 +132,7 @@ async function scrapeProducts(page, brandNames) {
           discount: discountPercentage,
           loyaltyDiscount: loyaltyDiscountPercentage,
           availability: productAvailability,
+          imageUrl: imageUrl
         };
 
         productList.push(product);
@@ -254,9 +260,10 @@ async function scrapeAllProducts(page, brandNames) {
   const products = [];
 
   for (const url of URLs) {
-    const browser = await puppeteer.launch();
+    const browser = await puppeteer.launch({ headless: true });
     const page = await browser.newPage();
 
+    await page.setViewport({ width: 1920, height: 1080 });
     await page.goto(url);
     await waitForPageLoad(page);
 
@@ -267,9 +274,8 @@ async function scrapeAllProducts(page, brandNames) {
       brandNames = await scrapeBrands(page);
 
     }
-    
+
     const newProducts = await scrapeAllProducts(page, brandNames);
-    //console.log(newProducts);
     console.log(newProducts.length);
     products.push(...newProducts);
     console.log(brandNames);

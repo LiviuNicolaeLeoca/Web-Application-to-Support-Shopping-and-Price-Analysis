@@ -1,0 +1,3 @@
+clusterizare produselor dupa criteriu
+recomandarea de produse
+istoric preturi

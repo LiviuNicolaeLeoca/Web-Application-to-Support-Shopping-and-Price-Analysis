@@ -2,7 +2,7 @@ import sqlite3 from 'sqlite3';
 import puppeteer from 'puppeteer';
 
 (async () => {
-  const db = new sqlite3.Database('KauflandProducts.db');
+  const db = new sqlite3.Database('./KauflandProducts.db');
 
   db.serialize(async () => {
     db.run(`CREATE TABLE IF NOT EXISTS categories (
@@ -12,11 +12,12 @@ import puppeteer from 'puppeteer';
     db.run(`CREATE TABLE IF NOT EXISTS products (
       id INTEGER PRIMARY KEY,
       name TEXT,
-      brandName TEXT,
+      brand TEXT,
       quantity TEXT,
       oldPrice TEXT,
       discount TEXT,
       price TEXT,
+      image_url TEXT,
       categoryId INTEGER,
       FOREIGN KEY (categoryId) REFERENCES categories(id)
     )`);
@@ -51,7 +52,6 @@ import puppeteer from 'puppeteer';
             console.error(err.message);
             reject(err);
           } else {
-            console.log(`Category '${categoryName}' inserted with ID ${this.lastID}`);
             resolve(this.lastID);
           }
         });
@@ -69,52 +69,70 @@ import puppeteer from 'puppeteer';
           const productOldPriceElement = productTile.querySelector('.a-pricetag__old-price');
           const productDiscountElement = productTile.querySelector('.a-pricetag__discount');
           const productPriceElement = productTile.querySelector('.a-pricetag__price');
+          const productImageElement = productTile.querySelector('.a-image-responsive');
 
-          if (productNameElement && productQuantityElement && productPriceElement) {
-            const productName = productNameElement.innerText;
+          if (productNameElement && productQuantityElement && productPriceElement && productImageElement) {
+            let productName = productNameElement.innerText;
             let productBrandName = productBrandNameElement ? productBrandNameElement.innerText : '';
-            const productQuantity = productQuantityElement.innerText.trim();
-            const productOldPrice = productOldPriceElement ? productOldPriceElement.innerText.trim() : '';
+            let productQuantity = productQuantityElement.innerText.trim();
+            const productOldPrice = productOldPriceElement ? parseFloat(productOldPriceElement.innerText.trim().replace(',', '.')) : '';
             const productDiscount = productDiscountElement ? productDiscountElement.innerText.trim() : '';
-            const productPrice = productPriceElement.innerText.trim();
+            const productPrice = parseFloat(productPriceElement.innerText.trim().replace(',', '.'));
+            const imageUrlSrc = productImageElement ? productImageElement.getAttribute('src') : null;
+            const imageUrlDataSrc = productImageElement ? productImageElement.getAttribute('data-srcset') : null;
+
+            let imageUrl = imageUrlSrc;
+
+            if (imageUrlDataSrc) {
+              const imageUrlWithoutWidth = imageUrlDataSrc.split(',').map(url => {
+                const trimmedUrl = url.trim();
+                return trimmedUrl.split(' ')[0];
+              });
+
+              imageUrl = imageUrlWithoutWidth.length > 0 ? imageUrlWithoutWidth[imageUrlWithoutWidth.length - 1] : null;
+            }
 
             if (productName === productBrandName) {
               productBrandName = '';
             }
-            if (productQuantity === productBrandName) {
-              productBrandName = '';
-            }
 
-            let modifiedProductName = '';
-            let modifiedProductBrandName = '';
+
+            let modifiedProductName = productName;
+            let modifiedProductBrandName = productBrandName;
+
             if (productName[0] === productName[0].toLowerCase()) {
-              let temp = productName;
-              modifiedProductName = productBrandName;
-              modifiedProductBrandName = temp;
+              [modifiedProductName, modifiedProductBrandName] = [modifiedProductBrandName, modifiedProductName];
+            }
+            if (modifiedProductBrandName.includes(productQuantity)) {
+              modifiedProductBrandName = modifiedProductBrandName.replace(productQuantity, '').trim();
+            } else if (modifiedProductBrandName === productQuantity) {
+              modifiedProductBrandName = '';
             }
 
+            if (modifiedProductName.includes(productQuantity)) {
+              modifiedProductName = modifiedProductName.replace(productQuantity, '').trim();
+            }
+            
             if (productDiscount !== '') {
-              const nameToUse = modifiedProductName !== '' ? modifiedProductName : productName;
-              const brandNameToUse = modifiedProductBrandName !== '' ? modifiedProductBrandName : productBrandName;
               discountedProductsList.push({
-                name: nameToUse,
-                brandName: brandNameToUse,
+                name: modifiedProductName,
+                brandName: modifiedProductBrandName,
                 quantity: productQuantity,
                 oldPrice: productOldPrice,
                 discount: productDiscount,
                 price: productPrice,
+                image_url: imageUrl,
                 categoryId: categoryId
               });
             } else {
-              const nameToUse = modifiedProductName !== '' ? modifiedProductName : productName;
-              const brandNameToUse = modifiedProductBrandName !== '' ? modifiedProductBrandName : productBrandName;
               nonDiscountedProductsList.push({
-                name: nameToUse,
-                brandName: brandNameToUse,
+                name: modifiedProductName,
+                brandName: modifiedProductBrandName,
                 quantity: productQuantity,
                 oldPrice: productOldPrice,
                 discount: productDiscount,
                 price: productPrice,
+                image_url: imageUrl,
                 categoryId: categoryId
               });
             }
@@ -128,27 +146,22 @@ import puppeteer from 'puppeteer';
       }, lastID);
 
       for (const product of discountedProductsList) {
-        db.run(`INSERT INTO products (name, brandName, quantity, oldPrice, discount, price, categoryId) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-          [product.name, product.brandName || '', product.quantity, product.oldPrice, product.discount, product.price, lastID], function (err) {
+        db.run(`INSERT INTO products (name, brand, quantity, oldPrice, discount, price, image_url, categoryId) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          [product.name, product.brandName || '', product.quantity, product.oldPrice, product.discount, product.price, product.image_url, categoryName], function (err) {
             if (err) {
               console.error(err.message);
-            } else {
-              console.log(`Product '${product.name}' with brand '${product.brandName}' inserted with ID ${this.lastID}`);
             }
           });
       }
 
       for (const product of nonDiscountedProductsList) {
-        db.run(`INSERT INTO products (name, brandName, quantity, oldPrice, discount, price, categoryId) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-          [product.name, product.brandName || '', product.quantity, product.oldPrice, product.discount, product.price, lastID], function (err) {
+        db.run(`INSERT INTO products (name, brand, quantity, oldPrice, discount, price, image_url, categoryId) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          [product.name, product.brandName || '', product.quantity, product.oldPrice, product.discount, product.price, product.image_url, categoryName], function (err) {
             if (err) {
               console.error(err.message);
-            } else {
-              console.log(`Product '${product.name}' with brand '${product.brandName}' inserted with ID ${this.lastID}`);
             }
           });
       }
-
       await browser.close();
     }
 
