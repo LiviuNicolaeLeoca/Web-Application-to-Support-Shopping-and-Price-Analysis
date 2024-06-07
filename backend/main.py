@@ -15,9 +15,11 @@ def read_csv_mega(file_path: str) -> List[Dict[str, Any]]:
                 quantity = row['quantity'].strip().lower().replace(" ", "")
                 image_urls = row.get('images', '').strip().split(', ')
                 image_url = image_urls[-2] if len(image_urls) >= 2 else ''
+                if(image_url):
+                    image_url = image_url.replace("'","")
                 if manufacturer_name and name and not isinstance(price, str) and quantity:
                     products.append({
-                        'brand': manufacturer_name + manufacturer_sub_brand_name,
+                        'brand': manufacturer_name + " "+manufacturer_sub_brand_name,
                         'name': name,
                         'price': price,
                         'quantity': quantity,
@@ -43,7 +45,7 @@ def read_csv_penny(file_path: str) -> List[Dict[str, Any]]:
                 image_urls = image_data.split(', ')
                 image_url = image_urls[0] if image_urls else ''
                 if(image_url):
-                    image_url = image_url.replace("[","")
+                    image_url = image_url.replace("[","").replace("'","")
                 if name and quantity:
                     products.append({
                         'name': name,
@@ -113,6 +115,7 @@ def compare_products(products1: List[Dict[str, Any]], products2: List[Dict[str, 
                 product2_quantity=product2_quantity.replace(" ", "")
             
             product1_brand = product1.get('brand', '')
+            
             product2_brand = product2.get('brand', '') if 'brand' in product2 else ''
             
             if product1_quantity == product2_quantity:
@@ -124,8 +127,8 @@ def compare_products(products1: List[Dict[str, Any]], products2: List[Dict[str, 
                     similar_products.append({
                         'product1Name': product1_name,
                         'product2Name': product2_name,
-                        'product1Brand': product1_brand,
-                        'product2Brand': product2_brand,
+                        'product1Brand': product1_brand.strip(),
+                        'product2Brand': product2_brand.strip(),
                         f"{product1['source']}Price": product1['price'],
                         f"{product2['source']}Price": float(product2['price']),
                         'quantity': product1_quantity,

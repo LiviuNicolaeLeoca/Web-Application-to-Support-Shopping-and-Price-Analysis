@@ -5,7 +5,7 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    min-height: 100vh; /* Ensure it takes at least the full height of the viewport */
+    min-height: 100vh;
     background-color: #f9f9f9;
     overflow: scroll;
 }
@@ -18,7 +18,7 @@ body {
     padding: 20px;
     width: 100vw;
     box-sizing: border-box;
-    justify-content: left;
+    justify-content: flex-start;
     scroll-behavior: smooth;
 }
 
@@ -31,7 +31,7 @@ body {
     width: 200px;
     text-align: center;
     padding: 20px;
-    flex: 0 0 auto; /* Prevents items from shrinking or growing */
+    flex: 0 0 auto;
     transition: transform 0.2s, box-shadow 0.2s;
 }
 
