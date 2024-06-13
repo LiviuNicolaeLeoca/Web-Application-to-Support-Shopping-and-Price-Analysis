@@ -3,6 +3,7 @@ import csv
 import sqlite3
 from typing import List, Dict, Any, Tuple, Set
 import re
+
 def read_csv(file_path: str, source: str) -> List[Dict[str, Any]]:
     products = []
     with open(file_path, mode='r', encoding='utf-8') as file:
@@ -22,7 +23,9 @@ def read_csv(file_path: str, source: str) -> List[Dict[str, Any]]:
                     brand = manufacturer_name + " " + manufacturer_sub_brand_name
                 elif source == 'penny':
                     name = row['name'].strip()
+                    #loyaltyPrice=float(row.get('loyaltyValue', '0.0').strip())
                     price = float(row.get('value', '0').strip())
+                    
                     quantity = f"{row['amount'].strip().lower()} {row['volumeLabelShort'].strip().lower().replace(' ', '')}"
                     image_data = row.get('images', '').strip()
                     image_urls = image_data.split(', ')
@@ -44,8 +47,97 @@ def read_csv(file_path: str, source: str) -> List[Dict[str, Any]]:
                 continue
     return products
 
-# Calculating Jaccard Similarity
+def create_products_table(conn: sqlite3.Connection):
+    cursor = conn.cursor()
+    cursor.execute('''
+        DROP TABLE IF EXISTS similar_products
+    ''')
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS similar_products (
+            id INTEGER PRIMARY KEY,
+            name TEXT,
+            brand TEXT,
+            quantity TEXT,
+            lowestPrice REAL,
+            lowestPriceSource TEXT,
+            image_urls TEXT,
+            all_Prices TEXT
+        )
+    ''')
+    conn.commit()
+
+def insert_similar_products(conn: sqlite3.Connection, similar_products: List[Dict[str, Any]], source_specific_ids: Dict[str, List[int]]):
+    cursor = conn.cursor()
+    for product in similar_products:
+        cursor.execute('''
+            INSERT INTO similar_products (name, brand, quantity, lowestPrice, lowestPriceSource, image_urls,all_Prices)
+            VALUES (?, ?, ?, ?, ?, ?,?)
+        ''', (
+            product['name'],
+            product['brand'],
+            product['quantity'],
+            product['lowestPrice'],
+            product['lowestPriceSource'],
+            str(product['image_urls']),
+            str(product['allPrices'])
+        ))
+        similar_product_id = cursor.lastrowid
+
+        for source, ids in source_specific_ids.items():
+            if source in product['allPrices']:
+                price = product['allPrices'][source]
+                for id_ in ids:
+                    cursor.execute(f'''
+                        UPDATE {source}_products
+                        SET similar_product_id = ?
+                        WHERE price = ? AND id = ?
+                    ''', (similar_product_id, price, id_))
+
+    conn.commit()
+
+def create_source_specific_tables(conn: sqlite3.Connection, sources: List[str]):
+    cursor = conn.cursor()
+    for source in sources:
+        cursor.execute(f'''
+            DROP TABLE IF EXISTS {source}_products
+        ''')
+        cursor.execute('''
+           CREATE TABLE IF NOT EXISTS {}_products (
+                id INTEGER PRIMARY KEY,
+                similar_product_id INTEGER,
+                name TEXT,
+                brand TEXT,
+                quantity TEXT,
+                price REAL,
+                image_url TEXT,
+                FOREIGN KEY (similar_product_id) REFERENCES similar_products(similar_product_id)
+                )
+        '''.format(source))
+    conn.commit()
+
+def insert_source_specific_products(conn: sqlite3.Connection, products: List[Dict[str, Any]], source: str) -> List[int]:
+    cursor = conn.cursor()
+    inserted_ids = []
+
+    for product in products:
+        cursor.execute('''
+            INSERT INTO {}_products (name, brand, quantity, price, image_url)
+            VALUES (?, ?, ?, ?, ?)
+        '''.format(source), (
+            product['name'],
+            product['brand'],
+            product['quantity'],
+            product['price'],
+            product['image_url']
+        ))
+        inserted_ids.append(cursor.lastrowid)
+
+    conn.commit()
+    return inserted_ids
+
 def jaccard_similarity(str1: str, str2: str) -> float:
+    if str1==None and str2==None:
+        return 1
     if not str1 or not str2:
         return 0.0
 
@@ -55,7 +147,6 @@ def jaccard_similarity(str1: str, str2: str) -> float:
     union = set1 | set2
     return len(intersection) / len(union)
 
-# Preprocessing product name for comparison
 def preprocess_product_name(product: Dict[str, Any]) -> str:
     brand = (product.get('brand', '') or '').strip()
     name = product['name'].lower()
@@ -83,73 +174,64 @@ def read_sqlite(db_path: str, table_name: str) -> List[Dict[str, Any]]:
 
     return products
 
-def compare_products_using_jaccard(products_list: List[List[Dict[str, Any]]]) -> Tuple[List[Dict[str, Any]], List[List[Dict[str, Any]]]]:
+def compare_products_using_jaccard(products_list: List[List[Dict[str, Any]]],conn: sqlite3.Connection) -> Tuple[List[Dict[str, Any]], List[List[Dict[str, Any]]]]:
     unique_products = defaultdict(lambda: {'products': [], 'allPrices': {}, 'image_urls': {}})
     similar_product_groups = []
     matched: Set[Tuple[str, str, str]] = set()
 
-    # Iterate through each list of products
     for i, products1 in enumerate(products_list):
         for product1 in products1:
             product1_name = preprocess_product_name(product1)
             product1_quantity = product1['quantity'].replace(" ", "") if product1['quantity'] else ''
             product1_key = (product1_name, product1_quantity, product1['brand'])
 
-            # Check if product1 has already been matched
             if product1_key not in matched:
                 unique_products[product1_key]['products'].append(product1)
                 unique_products[product1_key]['allPrices'][product1['source']] = product1['price']
                 unique_products[product1_key]['image_urls'][product1['source']] = product1['image_url']
                 matched.add(product1_key)
 
-                # Iterate over subsequent products for comparison
                 for j in range(i + 1, len(products_list)):
                     for product2 in products_list[j]:
                         product2_name = preprocess_product_name(product2)
                         product2_quantity = product2.get('quantity', '').replace(" ", "") if product2.get('quantity') else ''
                         product2_key = (product2_name, product2_quantity, product2['brand'])
 
-                        # Check if product2 is not already matched and is similar to product1
                         if product2_key not in matched and jaccard_similarity(product1_name, product2_name) > 0.5 and product1_quantity == product2_quantity:
                             unique_products[product1_key]['products'].append(product2)
                             unique_products[product1_key]['allPrices'][product2['source']] = product2['price']
                             unique_products[product1_key]['image_urls'][product2['source']] = product2['image_url']
                             matched.add(product2_key)
 
-                            # Iterate over subsequent products for the third match
                             for k in range(j + 1, len(products_list)):
                                 for product3 in products_list[k]:
                                     product3_name = preprocess_product_name(product3)
                                     product3_quantity = product3.get('quantity', '').replace(" ", "") if product3.get('quantity') else ''
                                     product3_key = (product3_name, product3_quantity, product3['brand'])
 
-                                    # Check if product3 is not already matched and is similar to product1 and product2
                                     if product3_key not in matched and jaccard_similarity(product1_name, product3_name) > 0.5 and product1_quantity == product3_quantity:
                                         unique_products[product1_key]['products'].append(product3)
                                         unique_products[product1_key]['allPrices'][product3['source']] = product3['price']
                                         unique_products[product1_key]['image_urls'][product3['source']] = product3['image_url']
                                         matched.add(product3_key)
 
-                                        # Iterate over subsequent products for the fourth match
                                         for l in range(k + 1, len(products_list)):
                                             for product4 in products_list[l]:
                                                 product4_name = preprocess_product_name(product4)
                                                 product4_quantity = product4.get('quantity', '').replace(" ", "") if product4.get('quantity') else ''
                                                 product4_key = (product4_name, product4_quantity, product4['brand'])
-
-                                                # Check if product4 is not already matched and is similar to product1, product2, and product3
                                                 if product4_key not in matched and jaccard_similarity(product1_name, product4_name) > 0.5 and product1_quantity == product4_quantity:
                                                     unique_products[product1_key]['products'].append(product4)
                                                     unique_products[product1_key]['allPrices'][product4['source']] = product4['price']
                                                     unique_products[product1_key]['image_urls'][product4['source']] = product4['image_url']
                                                     matched.add(product4_key)
 
-                # Append matched products group to the result if the count meets the minimum requirement
                 if len(unique_products[product1_key]['products']) >= 2:
                     similar_product_groups.append(unique_products[product1_key]['products'])
 
-    # Prepare the final list of similar products for output
     similar_products = []
+    source_specific_ids = defaultdict(list)
+
     for product_info in unique_products.values():
         if len(product_info['allPrices']) >= 2:
             best_price_source = min(product_info['allPrices'], key=product_info['allPrices'].get)
@@ -163,7 +245,13 @@ def compare_products_using_jaccard(products_list: List[List[Dict[str, Any]]]) ->
                 'allPrices': product_info['allPrices']
             })
 
-    return similar_products, similar_product_groups
+            for product in product_info['products']:
+                source_specific_table = f"{product['source']}_products"
+                inserted_ids = insert_source_specific_products(conn, [product], product['source'])
+                source_specific_ids[product['source']].extend(inserted_ids)
+
+    insert_similar_products(conn, similar_products, source_specific_ids)
+
 
 def main():
     csv_file_paths = {
@@ -177,7 +265,7 @@ def main():
     table_name = 'products'
 
     products_list = []
-
+    sources={'mega','penny','auchan','kaufland'}
     for source, file_path in csv_file_paths.items():
         products = read_csv(file_path, source)
         products_list.append(products)
@@ -186,14 +274,20 @@ def main():
         products = read_sqlite(sqlite_path, table_name)
         products_list.append(products)
 
-    similar_products, similar_product_pairs = compare_products_using_jaccard(products_list)
+    conn = sqlite3.connect('similar_products.db')
+    create_products_table(conn)
+    create_source_specific_tables(conn, sources)
 
-    for product in similar_products:
-        print(f"Similar Product: {product}")
+    compare_products_using_jaccard(products_list,conn)
 
-    print("\nSimilar Product Pairs:")
-    for pair in similar_product_pairs:
-            print(pair)
+    conn.close()
+
+    # for product in similar_products:
+    #     print(f"Similar Product: {product}")
+
+    # print("\nSimilar Product Pairs:")
+    # for pair in similar_product_pairs:
+    #     print(pair)
 
 if __name__ == "__main__":
     main()
