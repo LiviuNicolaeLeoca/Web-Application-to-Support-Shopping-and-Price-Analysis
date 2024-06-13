@@ -2,7 +2,7 @@ import puppeteer from "puppeteer";
 import sqlite3 from 'sqlite3';
 
 async function insertProductsIntoDatabase(products) {
-  const db = new sqlite3.Database('./AuchanProducts.db');
+  const db = new sqlite3.Database('AuchanProducts.db');
 
   db.serialize(() => {
     db.run(`CREATE TABLE IF NOT EXISTS products (
@@ -132,7 +132,7 @@ async function scrapeProducts(page, brandNames) {
           discount: discountPercentage,
           loyaltyDiscount: loyaltyDiscountPercentage,
           availability: productAvailability,
-          imageUrl: imageUrl
+          image_url: imageUrl
         };
 
         productList.push(product);
@@ -278,11 +278,12 @@ async function scrapeAllProducts(page, brandNames) {
     const newProducts = await scrapeAllProducts(page, brandNames);
     console.log(newProducts.length);
     products.push(...newProducts);
+
     console.log(brandNames);
 
     await browser.close();
   }
-
+  console.log(products)
   await insertProductsIntoDatabase(products);
 })();
 

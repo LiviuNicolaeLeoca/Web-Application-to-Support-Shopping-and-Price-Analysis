@@ -3,7 +3,4 @@
 .notite.txt
 backend/CarrefourDB.py
 backend/carrefour_products_db.csv
-backend/index.js
-backend/mega.csv
-backend/mega1.csv
-backend/AuchanDB.py
+backend/test.py

@@ -1,35 +1,50 @@
+/* styles.css */
 body {
     font-family: Arial, sans-serif;
+    background-color: #f8f9fa;
     margin: 0;
-    padding: 0;
-}
-
-.product-details-container {
-    max-width: 800px;
-    margin: auto;
     padding: 20px;
 }
 
-.product-info {
-    margin-bottom: 20px;
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    background-color: #fff;
+    padding: 20px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    border-radius: 8px;
 }
 
-#product-name {
-    font-size: 24px;
-    margin-bottom: 10px;
-}
-
-#product-image {
+.product-image {
     width: 100%;
-    max-width: 300px;
     height: auto;
+    display: block;
     margin-bottom: 20px;
 }
 
-.price-container {
+.prices-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
     margin-bottom: 20px;
 }
 
-.details-container p {
+.supermarket-container {
+    flex: 1 1 calc(50% - 40px);
+    border: 1px solid #ddd;
+    padding: 10px;
+    border-radius: 8px;
+    background-color: #f1f1f1;
+}
+
+.product-details {
+    margin-top: 20px;
+}
+
+.product-details p {
     margin: 5px 0;
+}
+
+.product {
+    margin-bottom: 10px;
 }

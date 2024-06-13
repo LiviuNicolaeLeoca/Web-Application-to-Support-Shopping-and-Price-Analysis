@@ -79,8 +79,11 @@ df = pd.DataFrame(all_products)
 df.dropna(axis=1, how='all', inplace=True)
 df.drop(columns=['averageRating', '__typename', 'recyclable','productProposedPackaging','maxOrderQuantity','isBundle','limitedAssortment','stock','isLowPriceGuarantee'], inplace=True)
 df.to_csv("mega_image_db.csv", index=False)
+
 df = pd.read_csv('mega_image_db.csv')
-df['price'] = df['price'].apply(ast.literal_eval)
+
+df['price'] = df['price'].fillna('{}').apply(ast.literal_eval)
+
 
 df['formattedValue'] = [price_info.get('formattedValue', '') for price_info in df['price']]
 df['discountedPriceFormatted'] = [price_info.get('discountedPriceFormatted', '') for price_info in df['price']]
@@ -103,12 +106,19 @@ df['potentialPromotionEndDate'] = [' '.join([promo.get('endDate', '') for promo 
 
 df.drop('potentialPromotions', axis=1, inplace=True)
 
-df['images'] = df['images'].fillna('').apply(ast.literal_eval)
+def safe_literal_eval(x):
+    try:
+        return ast.literal_eval(x)
+    except (SyntaxError, ValueError):
+        return {}
+
+df['images'] = df['images'].fillna('').apply(safe_literal_eval)
 
 base_url = 'https://static.mega-image.ro'
 df['images'] = [[base_url + img['url'] for img in images] for images in df['images']]
 
-df['quantity'] = df['name'].str.extract(r'(\d+(\.\d+)?\s*(x\s*\d+(\.\d+)?)?\s*(g|kg|l|L|ml|plicuri|bucati|capsule|buc)\b)').iloc[:, 0].astype(str)
+df['quantity'] = df['name'].str.extract(r'(\d+(\.\d+)?\s*(x\s*\d+(\.\d+)?)?\s*(g|kg|l|L|ml|plicuri|bucati|capsule|buc)\b)').iloc[:, 0]
+
 df['name'] = df['name'].replace(r'(\d+(\.\d+)?\s*(x\s*\d+(\.\d+)?)?\s*(g|kg|l|L|ml|plicuri|bucati|capsule|buc)\b)', '', regex=True)
 
 print(df.head())

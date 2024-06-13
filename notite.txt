@@ -1,3 +1,5 @@
 clusterizare produselor dupa criteriu
 recomandarea de produse
 istoric preturi
+2 cate 2
+cea mai apropiata locatie a produsului

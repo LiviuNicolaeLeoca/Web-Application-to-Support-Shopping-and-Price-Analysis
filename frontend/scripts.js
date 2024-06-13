@@ -115,10 +115,10 @@ function redirectToProductDetails(product) {
         image_url_product1: product.image_url_product1,
         image_url_product2: product.image_url_product2
     });
-    const jsonParams = new URLSearchParams({
-        queryParams: JSON.stringify(productDetails),
+    const Params = new URLSearchParams({
+        productDetails: JSON.stringify(queryParams),
     });
-    window.location.href = `product_details/product_details.html?${product.product1Name}`;
+    window.location.href = `product_details/product_details.html?${queryParams.toString()}`;
 }
 
 const auchanLogoImg = 'https://upload.wikimedia.org/wikipedia/fr/archive/9/90/20120504132214%21Logo_Auchan_%281983-2015%29.svg';
