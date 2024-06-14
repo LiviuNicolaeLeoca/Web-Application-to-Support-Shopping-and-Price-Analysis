@@ -1,19 +1,80 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Product Details</title>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="product_style.css">
 </head>
+
 <body>
-    <div class="container">
-        <h1 id="product-name">Product Name</h1>
-        <img id="product-image" src="" alt="Product Image" class="product-image">
+    <div id="product-details"></div>
+    <div id="product-instances"></div>
 
-        <div id="supermarkets-container" class="prices-container"></div>
-    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const queryParams = new URLSearchParams(window.location.search);
+            const productId = queryParams.get('productId');
 
-    <script src="product_details.js"></script>
+            if (productId) {
+                fetch(`/api/product_details?productId=${productId}`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! Status: ${response.status}`);
+                        }
+                        return response.json();
+                    })
+                    .then(data => displayProductDetails(data))
+                    .catch(error => console.error('Error fetching product details:', error));
+            } else {
+                console.error('Product ID not provided in URL');
+            }
+        });
+
+        function displayProductDetails(data) {
+            const productDetailsContainer = document.getElementById('product-details');
+            const productInstancesContainer = document.getElementById('product-instances');
+
+            const { details, instances } = data;
+
+            try {
+                const imageUrls = JSON.parse(details.image_urls);
+                const imageUrl = imageUrls[details.lowestPriceSource] || '';
+
+                productDetailsContainer.innerHTML = `
+                    <h2>${details.name}</h2>
+                    <p>Brand: ${details.brand}</p>
+                    <p>Quantity: ${details.quantity}</p>
+                    <p>Cheapest at ${details.lowestPriceSource}: ${details.lowestPrice} Lei</p>
+                    <img src="${imageUrl}" alt="${details.name}">
+                `;
+            } catch (error) {
+                console.error('Error parsing image_urls:', details.image_urls);
+                productDetailsContainer.innerHTML = `
+                    <h2>${details.name}</h2>
+                    <p>Brand: ${details.brand}</p>
+                    <p>Quantity: ${details.quantity}</p>
+                    <p>Cheapest at ${details.lowestPriceSource}: ${details.lowestPrice} Lei</p>
+                    <img src="" alt="${details.name}">
+                `;
+            }
+
+            productInstancesContainer.innerHTML = `<h3>All Instances:</h3>`;
+            instances.forEach(instance => {
+                const instanceElement = document.createElement('div');
+                instanceElement.classList.add('product-instance');
+                instanceElement.innerHTML = `
+                    <p>Source: ${instance.source}</p>
+                    <p>Price: ${instance.price} Lei</p>
+                    <p>Brand: ${instance.brand}</p>
+                    <p>Quantity: ${instance.quantity}</p>
+                    <img src="${instance.image_url}" alt="${instance.name}">
+                `;
+                productInstancesContainer.appendChild(instanceElement);
+            });
+        }
+    </script>
 </body>
+
 </html>

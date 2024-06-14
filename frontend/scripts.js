@@ -1,13 +1,9 @@
 document.addEventListener('DOMContentLoaded', () => {
-    fetchSimilarProducts();
-});
-
-function fetchSimilarProducts() {
     fetch('/api/similar_products')
         .then(response => response.json())
         .then(data => displaySimilarProducts(data))
         .catch(error => console.error('Error fetching similar products:', error));
-}
+});
 
 function displaySimilarProducts(products) {
     const productsContainer = document.getElementById('similar-products');
@@ -26,30 +22,35 @@ function createProductElement(product) {
     const nameDiv = document.createElement('div');
     nameDiv.classList.add('product-name');
     const productName = document.createElement('h2');
-    productName.textContent = product.product1Name;
+    productName.textContent = product.name;
     nameDiv.appendChild(productName);
 
     const priceDiv = document.createElement('div');
     priceDiv.classList.add('product-price');
-    const lowestPrices=getLowestPriceAndSource(product);
     const productPrice = document.createElement('p');
-    productPrice.textContent = `Cheapest is at ${lowestPrices.source}: ${lowestPrices.price} Lei`;
+    productPrice.textContent = `Cheapest at ${product.lowestPriceSource}: ${product.lowestPrice} Lei`;
     priceDiv.appendChild(productPrice);
-    console.log("Product price:",lowestPrices.source);
 
     const imageDiv = document.createElement('div');
     imageDiv.classList.add('product-image');
     const productImage = document.createElement('img');
-    productImage.src = product.image_url_product1;
-    productImage.alt = product.product1Name;
+
+    try {
+        const imageUrls = JSON.parse(product.image_urls);
+        productImage.src = imageUrls[product.lowestPriceSource];
+    } catch (error) {
+        console.error('Error parsing image_urls:', product.image_urls);
+        productImage.src = ''; 
+    }
+    productImage.alt = product.name;
     imageDiv.appendChild(productImage);
 
     const logoDiv = document.createElement('div');
     logoDiv.classList.add('product-logo');
     const logoImg = document.createElement('img');
     logoImg.classList.add('logo');
-    logoImg.src = determineLogo(lowestPrices.source);
-    logoImg.alt = lowestPrices.source;
+    logoImg.src = determineLogo(product.lowestPriceSource);
+    logoImg.alt = product.lowestPriceSource;
     logoDiv.appendChild(logoImg);
 
     productElement.appendChild(nameDiv);
@@ -62,26 +63,6 @@ function createProductElement(product) {
     });
 
     return productElement;
-}
-
-function getLowestPriceAndSource(product) {
-    const prices = [
-        { price: parseFloat(product.megaPrice), source: 'mega' },
-        { price: parseFloat(product.pennyPrice), source: 'penny' },
-        { price: parseFloat(product.kauflandPrice), source: 'kaufland' },
-        { price: parseFloat(product.auchanPrice), source: 'auchan' }
-    ];
-
-    const validPrices = prices.filter(p => !isNaN(p.price) && p.price > 0);
-
-    if (validPrices.length === 0) {
-        return { lowestPrice: 'N/A', lowestPriceSource: 'N/A' };
-    }
-
-    validPrices.sort((a, b) => a.price - b.price);
-    const lowestPriceData = validPrices[0];
-
-    return lowestPriceData;
 }
 
 function determineLogo(supermarket) {
@@ -101,22 +82,11 @@ function determineLogo(supermarket) {
 
 function redirectToProductDetails(product) {
     const queryParams = new URLSearchParams({
-        productName: product.product1Name,
-        product2Name: product.product2Name,
-        product1Brand: product.product1Brand,
-        product2Brand: product.product2Brand,
-        megaPrice: product.megaPrice,
-        pennyPrice: product.pennyPrice,
-        kauflandPrice: product.kauflandPrice,
-        auchanPrice: product.auchanPrice,
-        quantity: product.quantity,
-        product1Source: product.product1Source,
-        product2Source: product.product2Source,
-        image_url_product1: product.image_url_product1,
-        image_url_product2: product.image_url_product2
-    });
-    const Params = new URLSearchParams({
-        productDetails: JSON.stringify(queryParams),
+        productId: product.id,
+        productName: product.name,
+        productImage: JSON.parse(product.image_urls)[product.lowestPriceSource],
+        productPrice: product.lowestPrice,
+        productSource: product.lowestPriceSource
     });
     window.location.href = `product_details/product_details.html?${queryParams.toString()}`;
 }

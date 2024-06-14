@@ -1,5 +1,6 @@
 from collections import defaultdict
 import csv
+import json
 import sqlite3
 from typing import List, Dict, Any, Tuple, Set
 import re
@@ -10,6 +11,7 @@ def read_csv(file_path: str, source: str) -> List[Dict[str, Any]]:
         reader = csv.DictReader(file)
         for row in reader:
             try:
+                name, brand, price, quantity, image_url = '', '', 0.0, '', ''
                 if source == 'mega':
                     manufacturer_name = row['manufacturerName'].strip()
                     manufacturer_sub_brand_name = row['manufacturerSubBrandName'].strip() if row['manufacturerSubBrandName'] else ""
@@ -23,18 +25,16 @@ def read_csv(file_path: str, source: str) -> List[Dict[str, Any]]:
                     brand = manufacturer_name + " " + manufacturer_sub_brand_name
                 elif source == 'penny':
                     name = row['name'].strip()
-                    #loyaltyPrice=float(row.get('loyaltyValue', '0.0').strip())
                     price = float(row.get('value', '0').strip())
-                    
                     quantity = f"{row['amount'].strip().lower()} {row['volumeLabelShort'].strip().lower().replace(' ', '')}"
                     image_data = row.get('images', '').strip()
                     image_urls = image_data.split(', ')
                     image_url = image_urls[0] if image_urls else ''
                     if image_url:
-                        image_url = image_url.replace("[", "").replace("'", "")
+                        image_url = image_url.replace("[", "").replace("]", "").replace("'", "")
                     brand = row.get('brand', '').strip()
 
-                if name and quantity:
+                if name and quantity and price:
                     products.append({
                         'name': name,
                         'brand': brand,
@@ -43,15 +43,14 @@ def read_csv(file_path: str, source: str) -> List[Dict[str, Any]]:
                         'source': source,
                         'image_url': image_url
                     })
-            except (KeyError, ValueError):
+            except (KeyError, ValueError) as e:
+                print(f"Error processing row: {e}")
                 continue
     return products
 
-def create_products_table(conn: sqlite3.Connection):
+def create_tables(conn: sqlite3.Connection, sources: List[str]):
     cursor = conn.cursor()
-    cursor.execute('''
-        DROP TABLE IF EXISTS similar_products
-    ''')
+    cursor.execute('DROP TABLE IF EXISTS similar_products')
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS similar_products (
             id INTEGER PRIMARY KEY,
@@ -64,22 +63,36 @@ def create_products_table(conn: sqlite3.Connection):
             all_Prices TEXT
         )
     ''')
+    for source in sources:
+        cursor.execute(f'DROP TABLE IF EXISTS {source}_products')
+        cursor.execute(f'''
+           CREATE TABLE IF NOT EXISTS {source}_products (
+                id INTEGER PRIMARY KEY,
+                similar_product_id INTEGER,
+                name TEXT,
+                brand TEXT,
+                quantity TEXT,
+                price REAL,
+                image_url TEXT,
+                FOREIGN KEY (similar_product_id) REFERENCES similar_products(id)
+                )
+        ''')
     conn.commit()
 
 def insert_similar_products(conn: sqlite3.Connection, similar_products: List[Dict[str, Any]], source_specific_ids: Dict[str, List[int]]):
     cursor = conn.cursor()
     for product in similar_products:
         cursor.execute('''
-            INSERT INTO similar_products (name, brand, quantity, lowestPrice, lowestPriceSource, image_urls,all_Prices)
-            VALUES (?, ?, ?, ?, ?, ?,?)
+            INSERT INTO similar_products (name, brand, quantity, lowestPrice, lowestPriceSource, image_urls, all_Prices)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
         ''', (
             product['name'],
             product['brand'],
             product['quantity'],
             product['lowestPrice'],
             product['lowestPriceSource'],
-            str(product['image_urls']),
-            str(product['allPrices'])
+            json.dumps(product['image_urls']),
+            json.dumps(product['allPrices'])
         ))
         similar_product_id = cursor.lastrowid
 
@@ -95,35 +108,15 @@ def insert_similar_products(conn: sqlite3.Connection, similar_products: List[Dic
 
     conn.commit()
 
-def create_source_specific_tables(conn: sqlite3.Connection, sources: List[str]):
-    cursor = conn.cursor()
-    for source in sources:
-        cursor.execute(f'''
-            DROP TABLE IF EXISTS {source}_products
-        ''')
-        cursor.execute('''
-           CREATE TABLE IF NOT EXISTS {}_products (
-                id INTEGER PRIMARY KEY,
-                similar_product_id INTEGER,
-                name TEXT,
-                brand TEXT,
-                quantity TEXT,
-                price REAL,
-                image_url TEXT,
-                FOREIGN KEY (similar_product_id) REFERENCES similar_products(similar_product_id)
-                )
-        '''.format(source))
-    conn.commit()
-
 def insert_source_specific_products(conn: sqlite3.Connection, products: List[Dict[str, Any]], source: str) -> List[int]:
     cursor = conn.cursor()
     inserted_ids = []
 
     for product in products:
-        cursor.execute('''
-            INSERT INTO {}_products (name, brand, quantity, price, image_url)
+        cursor.execute(f'''
+            INSERT INTO {source}_products (name, brand, quantity, price, image_url)
             VALUES (?, ?, ?, ?, ?)
-        '''.format(source), (
+        ''', (
             product['name'],
             product['brand'],
             product['quantity'],
@@ -136,8 +129,6 @@ def insert_source_specific_products(conn: sqlite3.Connection, products: List[Dic
     return inserted_ids
 
 def jaccard_similarity(str1: str, str2: str) -> float:
-    if str1==None and str2==None:
-        return 1
     if not str1 or not str2:
         return 0.0
 
@@ -174,7 +165,7 @@ def read_sqlite(db_path: str, table_name: str) -> List[Dict[str, Any]]:
 
     return products
 
-def compare_products_using_jaccard(products_list: List[List[Dict[str, Any]]],conn: sqlite3.Connection) -> Tuple[List[Dict[str, Any]], List[List[Dict[str, Any]]]]:
+def compare_products_using_jaccard(products_list: List[List[Dict[str, Any]]], conn: sqlite3.Connection) -> Tuple[List[Dict[str, Any]], List[List[Dict[str, Any]]]]:
     unique_products = defaultdict(lambda: {'products': [], 'allPrices': {}, 'image_urls': {}})
     similar_product_groups = []
     matched: Set[Tuple[str, str, str]] = set()
@@ -246,12 +237,10 @@ def compare_products_using_jaccard(products_list: List[List[Dict[str, Any]]],con
             })
 
             for product in product_info['products']:
-                source_specific_table = f"{product['source']}_products"
                 inserted_ids = insert_source_specific_products(conn, [product], product['source'])
                 source_specific_ids[product['source']].extend(inserted_ids)
 
     insert_similar_products(conn, similar_products, source_specific_ids)
-
 
 def main():
     csv_file_paths = {
@@ -265,7 +254,8 @@ def main():
     table_name = 'products'
 
     products_list = []
-    sources={'mega','penny','auchan','kaufland'}
+    sources = {'mega', 'penny', 'auchan', 'kaufland'}
+    
     for source, file_path in csv_file_paths.items():
         products = read_csv(file_path, source)
         products_list.append(products)
@@ -275,19 +265,11 @@ def main():
         products_list.append(products)
 
     conn = sqlite3.connect('similar_products.db')
-    create_products_table(conn)
-    create_source_specific_tables(conn, sources)
+    create_tables(conn, sources)
 
-    compare_products_using_jaccard(products_list,conn)
+    compare_products_using_jaccard(products_list, conn)
 
     conn.close()
-
-    # for product in similar_products:
-    #     print(f"Similar Product: {product}")
-
-    # print("\nSimilar Product Pairs:")
-    # for pair in similar_product_pairs:
-    #     print(pair)
 
 if __name__ == "__main__":
     main()
