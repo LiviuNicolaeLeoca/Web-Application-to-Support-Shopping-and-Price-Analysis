@@ -81,26 +81,29 @@ app.get('/api/product_details', async (req, res) => {
             return res.status(404).json({ error: 'Product not found' });
         }
 
-        const instancesQuery = `
-            SELECT *
-            FROM ${productDetails.lowestPriceSource}_products
-            WHERE similar_product_id = ?
-        `;
+        // Define a function to fetch instances from a specific source
+        const fetchInstances = async (source) => {
+            const sourceQuery = `
+                SELECT *
+                FROM ${source}_products
+                WHERE similar_product_id = ?
+            `;
+            return await db.all(sourceQuery, productId);
+        };
 
-        // Fetch instances for the lowest price source
-        const lowestPriceInstances = await db.all(instancesQuery, productId);
+        const sources = ['mega', 'penny', 'auchan', 'kaufland'];
+        const allInstances = await Promise.all(sources.map(fetchInstances));
 
-        // Fetch instances for all other sources
-        const otherInstancesQuery = `
-            SELECT *
-            FROM similar_products sp
-            LEFT JOIN mega_products mega ON sp.id = mega.similar_product_id
-            LEFT JOIN penny_products penny ON sp.id = penny.similar_product_id
-            LEFT JOIN auchan_products auchan ON sp.id = auchan.similar_product_id
-            LEFT JOIN kaufland_products kaufland ON sp.id = kaufland.similar_product_id
-            WHERE sp.id = ? AND sp.lowestPriceSource != ?
-        `;
-        const otherInstances = await db.all(otherInstancesQuery, productId, productDetails.lowestPriceSource);
+        const instances = sources.flatMap((source, index) => 
+            allInstances[index].map(instance => ({
+                source,
+                name: instance.name,
+                price: instance.price,
+                brand: instance.brand,
+                quantity: instance.quantity,
+                image_url: instance.image_url
+            }))
+        );
 
         res.json({
             details: {
@@ -111,22 +114,7 @@ app.get('/api/product_details', async (req, res) => {
                 lowestPrice: productDetails.lowestPrice,
                 image_urls: productDetails[`${productDetails.lowestPriceSource}_productImage`]
             },
-            instances: [
-                ...lowestPriceInstances.map(instance => ({
-                    source: productDetails.lowestPriceSource,
-                    price: instance.price,
-                    brand: instance.brand,
-                    quantity: instance.quantity,
-                    image_url: instance.image_url
-                })),
-                ...otherInstances.map(instance => ({
-                    source: instance.lowestPriceSource,
-                    price: instance.lowestPrice,
-                    brand: instance[`${instance.lowestPriceSource}_productBrand`],
-                    quantity: instance[`${instance.lowestPriceSource}_productQuantity`],
-                    image_url: instance[`${instance.lowestPriceSource}_productImage`]
-                }))
-            ]
+            instances
         });
     } catch (error) {
         console.error('Error fetching product details:', error);
