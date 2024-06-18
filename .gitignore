@@ -4,3 +4,4 @@
 backend/CarrefourDB.py
 backend/carrefour_products_db.csv
 backend/test.py
+proxy-server/node_modules

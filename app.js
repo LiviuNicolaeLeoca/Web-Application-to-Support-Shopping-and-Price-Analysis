@@ -34,6 +34,16 @@ for (const source of sources) {
             res.status(500).json({ error: 'Internal Server Error' });
         }
     });
+    app.get(`/all_${source}`, async (req, res) => {
+        try {
+            const db = await initDb();
+            const rows = await db.all(`SELECT * FROM all_${source}_products`);
+            res.json(rows);
+        } catch (error) {
+            console.error(`Error fetching ${source} products:`, error);
+            res.status(500).json({ error: 'Internal Server Error' });
+        }
+    });
 }
 
 app.get('/api/similar_products', async (req, res) => {
@@ -81,7 +91,6 @@ app.get('/api/product_details', async (req, res) => {
             return res.status(404).json({ error: 'Product not found' });
         }
 
-        // Define a function to fetch instances from a specific source
         const fetchInstances = async (source) => {
             const sourceQuery = `
                 SELECT *
@@ -122,6 +131,44 @@ app.get('/api/product_details', async (req, res) => {
     }
 });
 
+for (const source of sources) {
+    // Route to fetch all products for a specific source
+    app.get(`/all_${source}_products`, async (req, res) => {
+        const { id } = req.query;
+
+        if (!id) {
+            return res.status(400).json({ error: 'Id not provided' });
+        }
+
+        try {
+            const db = await initDb();
+            const query = `
+                SELECT *
+                FROM all_${source}_products
+                WHERE id = ?
+            `;
+            const rows = await db.all(query, id);
+
+            if (!rows.length) {
+                return res.status(404).json({ error: 'Product not found' });
+            }
+
+            const instances = rows.map(row => ({
+                source,
+                name: row.name,
+                price: row.price,
+                brand: row.brand,
+                quantity: row.quantity,
+                image_url: row.image_url
+            }));
+
+            res.json({ instances });
+        } catch (error) {
+            console.error(`Error fetching ${source} products:`, error);
+            res.status(500).json({ error: 'Internal Server Error' });
+        }
+    });
+}
 app.listen(PORT, () => {
     console.log(`Server is running on http://localhost:${PORT}`);
 });

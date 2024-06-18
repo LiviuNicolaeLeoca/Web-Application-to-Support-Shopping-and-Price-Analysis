@@ -80,6 +80,9 @@ async function scrapeProducts(page, brandNames) {
         let brand = null;
         if (brandNames) {
           brand = brandNames.find(brandName => productName.toLowerCase().includes(brandName.toLowerCase()));
+          if (brand) {
+            productName = productName.replace(new RegExp(brand, 'gi'), '').trim();
+        }
         }
 
         const quantityPattern = /(\d+(\.\d+)?\s*(x\s*\d+(\.\d+)?)?\s*(g|kg|l|ml|plicuri|bucati|capsule|bauturi|buc)\b)|(\d+\s*(in)?\s*\d+\s*(in)?\s*\d+)/gi;
@@ -97,13 +100,18 @@ async function scrapeProducts(page, brandNames) {
             productName = productName.slice(0, lastCommaIndex).trim();
           }
         }
+        productName = productName.replace(/,/g, '').trim();
+        let substringToRemove=["sticla","doza","capsule" ]
+        substringToRemove.forEach(substringToRemove => {
+          const escapedSubstring = substringToRemove.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+          const regex = new RegExp(`\\b${escapedSubstring}\\b`, 'gi');
+          productName= productName.replace(regex, '').trim();
+        });
 
-        if (productName.slice(-1) === ',') {
-          productName = productName.slice(0, -1).trim();
-        }
-        if (productName.match(/, \+\/-$/)) {
+        if (productName.match(/ \+\/-$/)) {
           productName = productName.slice(0, -5).trim();
         }
+
         const productAvailability = productAvailabilityElement.innerText.trim();
         const productPrice = productPriceElement.innerText.trim();
         const productOldPrice = productOldPriceElement ? productOldPriceElement.innerText.trim() : null;
@@ -120,8 +128,6 @@ async function scrapeProducts(page, brandNames) {
 
         let modifiedPrice = parseFloat(productPrice.replace('lei', '').trim().replace(',', '.'));
         let modifiedOldPrice = productOldPrice ? parseFloat(productOldPrice.replace('lei', '').trim().replace(',', '.')) : null;
-
-        //productQuantity = productQuantity ? productQuantity.replace(/\s+/g, '').toLowerCase() : null;
 
         const product = {
           name: productName,
@@ -270,7 +276,7 @@ async function scrapeAllProducts(page, brandNames) {
     let brandNames = await scrapeBrands(page);
     while (brandNames.length === 0) {
       console.log('No brands found. Retrying...');
-      await new Promise(resolve => setTimeout(resolve, 25000));
+      await new Promise(resolve => setTimeout(resolve, 7*1000));
       brandNames = await scrapeBrands(page);
 
     }

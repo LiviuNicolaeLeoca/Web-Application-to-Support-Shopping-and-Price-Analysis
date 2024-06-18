@@ -25,10 +25,16 @@ function createProductElement(product) {
     productName.textContent = product.name;
     nameDiv.appendChild(productName);
 
+    const brandDiv = document.createElement('div');
+    brandDiv.classList.add('product-brand');
+    const productBrand = document.createElement('p1');
+    productBrand.textContent = product.brand;
+    brandDiv.appendChild(productBrand);
+
     const priceDiv = document.createElement('div');
     priceDiv.classList.add('product-price');
     const productPrice = document.createElement('p');
-    productPrice.textContent = `Cheapest at ${product.lowestPriceSource}: ${product.lowestPrice} Lei`;
+    productPrice.textContent = `Cheapest at ${product.lowestPriceSource.toUpperCase()}: ${product.lowestPrice} RON`;
     priceDiv.appendChild(productPrice);
 
     const imageDiv = document.createElement('div');
@@ -54,6 +60,7 @@ function createProductElement(product) {
     logoDiv.appendChild(logoImg);
 
     productElement.appendChild(nameDiv);
+    productElement.appendChild(brandDiv); // Append brand element
     productElement.appendChild(priceDiv);
     productElement.appendChild(imageDiv);
     productElement.appendChild(logoDiv);

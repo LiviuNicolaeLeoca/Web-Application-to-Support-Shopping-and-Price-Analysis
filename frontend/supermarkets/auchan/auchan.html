@@ -1,24 +1,65 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Auchan Products</title>
+    <title>Auchan</title>
     <link rel="stylesheet" href="../style.css">
 </head>
+
 <body>
     <header>
-        <h1>Auchan Products</h1>
+        <div class="header-content">
+            <h1>Auchan</h1>
+            <div class="search-bar">
+                <input type="text" id="search-input" placeholder="Search for products...">
+            </div>
+        </div>
         <nav>
             <ul>
                 <li><a href="/index.html">Home</a></li>
             </ul>
         </nav>
     </header>
+    <div class="body-wrapper">
+        <div class="filters">
+            <div class="filter-container">
+                <input type="text" id="brand-filter-search" class="filter-search-bar" placeholder="Search brands...">
+                <div id="brand-filter" class="filter-content"></div>
+            </div>
+            <div class="filter-container">
+                <input type="text" id="quantity-filter-search" class="filter-search-bar"
+                    placeholder="Search quantities...">
+                <div id="quantity-filter" class="filter-content"></div>
+            </div>
+            <button id="clear-filters-button">Clear Filters</button>
+        </div>
+        <div class="products-wrapper">
+            <div class="section">
+                <h2>Products found in 2 or more supermarkets</h2>
+                <div class="sort-container">
+                    <label for="sort-options">Sort by:</label>
+                    <select id="sort-options">
+                        <option value="alphabetically as">Alphabetically Ascendent</option>
+                        <option value="alphabetically des">Alphabetically Descendent</option>
+                        <option value="price as"> Price Ascendent</option>
+                        <option value="price des"> Price Descendent</option>
+                    </select>
+                </div>
+            </div>
+            <div class="product-grid-wrapper">
+                <div class="product-grid"></div>
+            </div>
 
-    <div class="product-grid">
+
+            <div class="section">
+                <h2>All of the Products</h2>
+                <div class="all-source-product-grid"></div>
+            </div>
+        </div>
     </div>
-
     <script src="../1script.js"></script>
 </body>
+
 </html>
