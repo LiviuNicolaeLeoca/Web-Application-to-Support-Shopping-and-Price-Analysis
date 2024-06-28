@@ -20,7 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
         console.error('Product ID not provided in URL');
     }
 
-    if (id && source) {
+    if (productId === 'undefined' && id && source) {
         fetch(`/all_${source}_products?id=${id}`)
             .then(response => {
                 if (!response.ok) {
@@ -41,8 +41,9 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function displayProductInstances(data) {
+    const firstInstanceContainer = document.getElementById('first-instance');
     const productInstancesContainer = document.getElementById('product-instances');
-    productInstancesContainer.innerHTML = ''; // Clear previous content
+    productInstancesContainer.innerHTML = '';
     const { instances } = data;
 
     instances.sort((a, b) => a.price - b.price);
@@ -50,17 +51,26 @@ function displayProductInstances(data) {
     instances.forEach((instance, index) => {
         const instanceElement = document.createElement('div');
         instanceElement.classList.add('product-instance');
+        if (instance.source === 'mega')
+            instance.source = 'mega image'
+        instanceElement.innerHTML = `
+            <div class="product-instance-content">
+             <img src="${instance.image_url}" alt="${instance.name}">
+            </div>           
+                <div class="details">
+                    <p><strong>${instance.name}</p>
+                    <p>${instance.brand}</strong></p>
+                    <p>${instance.source.toUpperCase()}</p>
+                    <p>${instance.price} RON</p>
+                    <p>${instance.quantity}</p>
+                </div>
+        `;
+
         if (index === 0) {
             instanceElement.classList.add('first-instance');
+            firstInstanceContainer.appendChild(instanceElement);
+        } else {
+            productInstancesContainer.appendChild(instanceElement);
         }
-        instanceElement.innerHTML = `
-            <p>${instance.name}</p>
-            <p>${instance.brand}</p>
-            <p>${instance.source}</p>
-            <p>${instance.price} Lei</p>
-            <p>${instance.quantity}</p>
-            <img src="${instance.image_url}" alt="${instance.name}">
-        `;
-        productInstancesContainer.appendChild(instanceElement);
     });
 }

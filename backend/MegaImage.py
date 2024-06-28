@@ -80,7 +80,7 @@ df.dropna(axis=1, how='all', inplace=True)
 df.drop(columns=['averageRating', '__typename', 'recyclable','productProposedPackaging','maxOrderQuantity','isBundle','limitedAssortment','stock','isLowPriceGuarantee'], inplace=True)
 df.to_csv("mega_image_db.csv", index=False)
 
-df = pd.read_csv('mega_image_db.csv')
+df = pd.read_csv('./backend/mega_image_db.csv')
 
 df['price'] = df['price'].fillna('{}').apply(ast.literal_eval)
 
@@ -123,4 +123,4 @@ df['name'] = df['name'].replace(r'(\d+(\.\d+)?\s*(x\s*\d+(\.\d+)?)?\s*(g|kg|l|L|
 
 print(df.head())
 
-df.to_csv("mega_image_db.csv", index=False)
+df.to_csv("./backend/mega_image_db.csv", index=False)

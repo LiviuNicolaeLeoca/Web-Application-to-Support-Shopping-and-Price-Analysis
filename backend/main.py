@@ -49,6 +49,26 @@ def read_csv(file_path: str, source: str) -> List[Dict[str, Any]]:
                 continue
     return products
 
+def read_sqlite(db_path: str, table_name: str) -> List[Dict[str, Any]]:
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    cursor.execute(f"SELECT * FROM {table_name}")
+    columns = [description[0] for description in cursor.description]
+
+    rows = cursor.fetchall()
+    products = [dict(zip(columns, row)) for row in rows]
+
+    for product in products:
+        product['price'] = float(product['price'])
+
+    conn.close()
+
+    source = db_path.split('/')[-1].split('Products')[0].lower()
+    for product in products:
+        product['source'] = source
+
+    return products
+
 def create_tables(conn: sqlite3.Connection, sources: List[str]):
     cursor = conn.cursor()
     cursor.execute('DROP TABLE IF EXISTS similar_products')
@@ -178,26 +198,6 @@ def preprocess_product_name(product: Dict[str, Any]) -> str:
         name = re.sub(r'\b' + re.escape(brand) + r'\b', '', name).strip()
     return f"{brand} {name}".strip()
 
-def read_sqlite(db_path: str, table_name: str) -> List[Dict[str, Any]]:
-    conn = sqlite3.connect(db_path)
-    cursor = conn.cursor()
-    cursor.execute(f"SELECT * FROM {table_name}")
-    columns = [description[0] for description in cursor.description]
-
-    rows = cursor.fetchall()
-    products = [dict(zip(columns, row)) for row in rows]
-
-    for product in products:
-        product['price'] = float(product['price'])
-
-    conn.close()
-
-    source = db_path.split('/')[-1].split('Products')[0].lower()
-    for product in products:
-        product['source'] = source
-
-    return products
-
 def compare_products_using_jaccard(products_list: List[List[Dict[str, Any]]], conn: sqlite3.Connection) -> Tuple[List[Dict[str, Any]], List[List[Dict[str, Any]]]]:
     unique_products = defaultdict(lambda: {'products': [], 'allPrices': {}, 'image_urls': {}})
     similar_product_groups = []
@@ -208,7 +208,6 @@ def compare_products_using_jaccard(products_list: List[List[Dict[str, Any]]], co
             product1_name = preprocess_product_name(product1)
             product1_quantity = product1['quantity'].replace(" ", "") if product1['quantity'] else ''
             product1_key = (product1_name, product1_quantity, product1['brand'],product1['source'])
-            #key is the same if productName, brand and quantity are the same
             if product1_key not in matched:
                 unique_products[product1_key]['products'].append(product1)
                 unique_products[product1_key]['allPrices'][product1['source']] = product1['price']
@@ -324,12 +323,12 @@ def insert_all_source_products(conn: sqlite3.Connection, products_list: List[Lis
 
 def main():
     csv_file_paths = {
-        'mega': 'mega_image_db.csv',
-        'penny': 'penny_products_db.csv'
+        'mega': './backend/mega_image_db.csv',
+        'penny': './backend/penny_products_db.csv'
     }
     sqlite_file_paths = [
-        './KauflandProducts.db',
-        './AuchanProducts.db'
+        './backend/KauflandProducts.db',
+        './backend/AuchanProducts.db'
     ]
     table_name = 'products'
 

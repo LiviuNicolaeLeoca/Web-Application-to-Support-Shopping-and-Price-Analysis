@@ -1,38 +1,35 @@
+/* Reset and basic styling */
 body {
     font-family: Arial, sans-serif;
     margin: 0;
     padding: 0;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 100vh;
     background-color: #ffffff;
-    overflow: scroll;
     overflow-x: hidden;
 }
 
-.body-wrapper {
-    width: 100%;
-    max-width: 1500px;
-    padding: 20px;
-    box-sizing: border-box;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    flex-wrap: wrap;
-}
-
-header {
+/* Header styling */
+.header-content {
     background-color: #333;
     color: #fff;
     width: 100%;
     padding: 10px 0;
     text-align: center;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+}
+
+.header-content h1 {
+    margin: 0;
+    font-size: 24px;
 }
 
 nav ul {
     list-style-type: none;
     padding: 10px;
+    margin: 0;
 }
 
 nav ul li {
@@ -51,6 +48,21 @@ nav ul li a {
 nav ul li a:hover {
     color: #ffd700;
 }
+
+/* Main wrapper for the entire page */
+.body-wrapper {
+    width: 100%;
+    max-width: 1500px;
+    padding: 20px;
+    box-sizing: border-box;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+    margin: 80px auto 0 auto; /* Adjust margin-top to avoid overlap with fixed header */
+}
+
+/* Similar products section */
 #similar-products {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -64,6 +76,7 @@ nav ul li a:hover {
     margin: 0 auto;
 }
 
+/* Product card styling */
 .product {
     position: relative;
     background-color: #ffffff;
@@ -75,7 +88,11 @@ nav ul li a:hover {
     padding: 20px;
     flex: 0 0 auto;
     transition: transform 0.2s, box-shadow 0.2s;
+}
 
+.product:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
 }
 
 .product-image img {
@@ -98,10 +115,10 @@ nav ul li a:hover {
 }
 
 .product .product-brand {
-    font-size: 19px; /* Adjust font size as needed */
+    font-size: 19px;
     font-weight: lighter;
-    color: #000000; /* Adjust color if necessary */
-    margin-bottom: 10px; /* Add some spacing below the brand */
+    color: #000000;
+    margin-bottom: 10px;
 }
 
 .product .logo {
@@ -110,9 +127,4 @@ nav ul li a:hover {
     right: 10px;
     width: 40px;
     height: auto;
-}
-
-.product:hover {
-    transform: translateY(-10px);
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
 }

@@ -250,8 +250,8 @@ nav ul li a:hover {
 .sort-container {
     display: flex;
     align-items: center;
-    margin-top: 0px; /* Adjust margin as needed */
-    flex: 1; /* Add flex property to sort container */
+    margin-top: 0px;
+    flex: 1;
 }
 
 .sort-container select {
@@ -271,7 +271,7 @@ nav ul li a:hover {
     border-radius: 5px;
     box-sizing: border-box;
 }
-/* Reset and basic styling */
+
 body {
     font-family: Arial, sans-serif;
     background-color: #f0f0f0;
@@ -280,7 +280,6 @@ body {
     padding: 0;
 }
 
-/* Main wrapper for the entire page */
 .body-wrapper {
     display: flex;
     width: 100%;
@@ -289,11 +288,10 @@ body {
     padding: 20px;
 }
 
-/* Header content styling */
 .header-content {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: space-evenly;
 }
 
 .header-content h1 {
@@ -301,7 +299,6 @@ body {
     margin-left: 15%; /* Adjust as needed */
 }
 
-/* Header styling */
 header {
     background-color: #000000;
     color: #fff;
@@ -313,7 +310,6 @@ header {
     z-index: 1000; 
 }
 
-/* Navigation styling */
 nav ul {
     list-style-type: none;
     padding: 10px;
@@ -356,13 +352,11 @@ nav ul li a:hover {
     margin-right: 15%;
 }
 
-/* Main content area */
 .products-wrapper {
-    flex: 1;
-    margin-left: 270px; /* Adjust based on filters width */
+    flex: 100%;
+    margin-left: 270px;
 }
 
-/* Section styling */
 .section {
     width: 100%;
     margin-bottom: 40px;
@@ -371,11 +365,11 @@ nav ul li a:hover {
 .section h2 {
     font-size: 1.5em;
     margin-bottom: 10px;
-    width: auto; /* Adjust width of h2 as needed */
-    margin-right: 0px; /* Add margin to separate h2 and sort container */
+    width: auto;
+    margin-right: 0px;
+    justify-content: start;
 }
 
-/* Product grid styling */
 .product-grid,
 .all-source-product-grid {
     display: flex;
@@ -416,7 +410,6 @@ nav ul li a:hover {
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
 }
 
-/* Filters sidebar styling */
 .filters {
     margin-top: 3.5%;
     width: 250px;
@@ -500,7 +493,6 @@ nav ul li a:hover {
     background-color: #45a049;
 }
 
-/* Responsive design */
 @media (max-width: 768px) {
     .body-wrapper {
         flex-direction: column;
@@ -523,7 +515,7 @@ nav ul li a:hover {
 
 .sort-container {
     display: flex;
-    align-items: center;
+    align-items: flex-end;
 }
 
 .sort-container select {

@@ -66,7 +66,7 @@ params = {
     'pageSize': '30',
     'sortBy': 'relevance',
 }
-print (url)
+
 all_products = []
 for page_number in range(0, 20):
     params['page'] = str(page_number)
@@ -114,4 +114,4 @@ df['value'] = df['value'].apply(lambda x: None if pd.isna(x) else x)
 df['loyaltyValue'] = df['loyaltyValue'].apply(lambda x: None if pd.isna(x) else x)
 print(df[['value', 'oldPrice', 'loyaltyValue']].head())
 
-df.to_csv("penny_products_db.csv", index=False)
+df.to_csv("./backend/penny_products_db.csv", index=False)
