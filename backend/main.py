@@ -343,7 +343,7 @@ def main():
         products = read_sqlite(sqlite_path, table_name)
         products_list.append(products)
 
-    conn = sqlite3.connect('similar_products.db')
+    conn = sqlite3.connect('./backend/similar_products.db')
     create_tables(conn, sources)
 
     compare_products_using_jaccard(products_list, conn)

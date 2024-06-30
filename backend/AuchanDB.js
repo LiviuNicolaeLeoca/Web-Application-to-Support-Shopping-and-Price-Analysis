@@ -2,7 +2,7 @@ import puppeteer from "puppeteer";
 import sqlite3 from 'sqlite3';
 
 async function insertProductsIntoDatabase(products) {
-  const db = new sqlite3.Database('AuchanProducts.db');
+  const db = new sqlite3.Database('./backend/AuchanProducts.db');
 
   db.serialize(() => {
     db.run(`CREATE TABLE IF NOT EXISTS products (
@@ -36,7 +36,7 @@ async function insertProductsIntoDatabase(products) {
 
 async function deleteAllProducts() {
   return new Promise((resolve, reject) => {
-    const db = new sqlite3.Database('./AuchanProducts.db', (err) => {
+    const db = new sqlite3.Database('./backend/AuchanProducts.db', (err) => {
       if (err) {
         console.error('Error opening database:', err);
         reject(err);
@@ -115,7 +115,10 @@ async function scrapeProducts(page, brandNames) {
         const productAvailability = productAvailabilityElement.innerText.trim();
         const productPrice = productPriceElement.innerText.trim();
         const productOldPrice = productOldPriceElement ? productOldPriceElement.innerText.trim() : null;
-        const imageUrl = imageElement.src;
+        let imageUrl = imageElement.src;
+        if (imageUrl.includes('-300-300')) {
+          imageUrl = imageUrl.replace('-300-300', '-1200-1200').replace('width=300', 'width=1200').replace('height=300', 'height=1200');
+        }
 
         let discountPercentage = null;
         let loyaltyDiscountPercentage = null;
@@ -292,4 +295,3 @@ async function scrapeAllProducts(page, brandNames) {
   console.log(products)
   await insertProductsIntoDatabase(products);
 })();
-

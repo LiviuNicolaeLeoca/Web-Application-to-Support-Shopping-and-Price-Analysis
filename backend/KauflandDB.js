@@ -2,7 +2,7 @@ import sqlite3 from 'sqlite3';
 import puppeteer from 'puppeteer';
 
 (async () => {
-  const db = new sqlite3.Database('./KauflandProducts.db');
+  const db = new sqlite3.Database('./backend/KauflandProducts.db');
 
   db.serialize(async () => {
     db.run(`CREATE TABLE IF NOT EXISTS categories (

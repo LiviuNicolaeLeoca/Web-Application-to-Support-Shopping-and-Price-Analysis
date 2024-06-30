@@ -75,13 +75,13 @@ while True:
         print("Error:", response.status_code)
         break
 
-df = pd.DataFrame(all_products)
-df.dropna(axis=1, how='all', inplace=True)
-df.drop(columns=['averageRating', '__typename', 'recyclable','productProposedPackaging','maxOrderQuantity','isBundle','limitedAssortment','stock','isLowPriceGuarantee'], inplace=True)
-df.to_csv("mega_image_db.csv", index=False)
+df1 = pd.DataFrame(all_products)
+df1.dropna(axis=1, how='all', inplace=True)
+df1.drop(columns=['averageRating', '__typename', 'recyclable','productProposedPackaging','maxOrderQuantity','isBundle','limitedAssortment','stock','isLowPriceGuarantee'], inplace=True)
+df1.to_csv('./backend/mega_image_db.csv', index=False)
+df1=None
 
 df = pd.read_csv('./backend/mega_image_db.csv')
-
 df['price'] = df['price'].fillna('{}').apply(ast.literal_eval)
 
 
@@ -106,12 +106,13 @@ df['potentialPromotionEndDate'] = [' '.join([promo.get('endDate', '') for promo 
 
 df.drop('potentialPromotions', axis=1, inplace=True)
 
-def safe_literal_eval(x):
+def safe_literal_eval(val):
     try:
-        return ast.literal_eval(x)
-    except (SyntaxError, ValueError):
-        return {}
-
+        if isinstance(val, str):
+            return ast.literal_eval(val)
+        return val
+    except (ValueError, SyntaxError):
+        return val
 df['images'] = df['images'].fillna('').apply(safe_literal_eval)
 
 base_url = 'https://static.mega-image.ro'

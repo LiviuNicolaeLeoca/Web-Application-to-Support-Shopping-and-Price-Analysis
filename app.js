@@ -2,6 +2,7 @@ const express = require('express');
 const sqlite3 = require('sqlite3');
 const path = require('path');
 const { open } = require('sqlite');
+const { exec } = require('child_process');
 const PORT = process.env.PORT || 3000;
 
 const app = express();
@@ -99,11 +100,9 @@ app.get('/api/product_details', async (req, res) => {
             `;
             return await db.all(sourceQuery, productId);
         };
-
-        const sources = ['mega', 'penny', 'auchan', 'kaufland'];
         const allInstances = await Promise.all(sources.map(fetchInstances));
 
-        const instances = sources.flatMap((source, index) => 
+        const instances = sources.flatMap((source, index) =>
             allInstances[index].map(instance => ({
                 source,
                 name: instance.name,
@@ -132,7 +131,6 @@ app.get('/api/product_details', async (req, res) => {
 });
 
 for (const source of sources) {
-    // Route to fetch all products for a specific source
     app.get(`/all_${source}_products`, async (req, res) => {
         const { id } = req.query;
 
@@ -169,6 +167,67 @@ for (const source of sources) {
         }
     });
 }
+
+const sources1 = [
+    { name: 'mega', type: 'python', script: 'MegaImage.py' },
+    { name: 'penny', type: 'python', script: 'PennyDB.py' },
+    { name: 'kaufland', type: 'js', script: 'KauflandDB.js' },
+    { name: 'auchan', type: 'js', script: 'AuchanDB.js' }
+];
+
+for (const source1 of sources1) {
+    app.post(`/scrape/${source1.name}`, (req, res) => {
+        const command = source1.type === 'python' ? `python3 ./backend/${source1.script}` : `node ./backend/${source1.script}`;
+        exec(command, (error, stdout, stderr) => {
+            if (error) {
+                console.error(`Error executing ${source1.script}:`, error);
+                return res.status(500).json({ error: `Error executing ${source1.script}` });
+            }
+            res.json({ message: `Scraping for ${source1.name} completed successfully`, stdout, stderr });
+        });
+        const commandMain = 'python3 ./backend/main.py';
+        exec(commandMain, (error, stdout, stderr) => {
+            if (error) {
+                console.error('Error executing main.py:', error);
+                return res.status(500).json({ error: 'Error executing main.py' });
+            }
+            console.log('main.py execution completed');
+            res.json({ message: 'Scraping for all supermarkets and main.py execution completed successfully', stdout, stderr });
+        });
+    });
+}
+
+app.post('/scrape/all', async (req, res) => {
+    try {
+        for (const source1 of sources1) {
+            const command = source1.type === 'python' ? `python3 ./backend/${source1.script}` : `node ./backend/${source1.script}`;
+            await new Promise((resolve, reject) => {
+                exec(command, (error, stdout, stderr) => {
+                    if (error) {
+                        console.error(`Error executing ${source1.script}:`, error);
+                        return reject(`Error executing ${source1.script}`);
+                    }
+                    console.log(`Scraping for ${source1.name} completed`);
+                    resolve();
+                });
+            });
+        }
+
+        const commandMain = 'python3 ./backend/main.py';
+        exec(commandMain, (error, stdout, stderr) => {
+            if (error) {
+                console.error('Error executing main.py:', error);
+                return res.status(500).json({ error: 'Error executing main.py' });
+            }
+            console.log('main.py execution completed');
+            res.json({ message: 'Scraping for all supermarkets and main.py execution completed successfully', stdout, stderr });
+        });
+
+    } catch (error) {
+        res.status(500).json({ error: 'Error executing scrape_all' });
+    }
+});
+
 app.listen(PORT, () => {
     console.log(`Server is running on http://localhost:${PORT}`);
 });
