@@ -4,9 +4,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const id = queryParams.get('Id');
     const source = queryParams.get('productSource');
 
-    console.log('Query Params:', { productId, id, source }); // Log for debugging
+    console.log('Query Params:', { productId, id, source });
 
-    if (productId) {
+    if (productId && productId !== 'undefined') {
         fetch(`/api/product_details?productId=${productId}`)
             .then(response => {
                 if (!response.ok) {
@@ -16,11 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
             })
             .then(data => displayProductInstances(data))
             .catch(error => console.error('Error fetching product details:', error));
-    } else {
-        console.error('Product ID not provided in URL');
-    }
-
-    if (productId === 'undefined' && id && source) {
+    } else if (id && source) {
         fetch(`/all_${source}_products?id=${id}`)
             .then(response => {
                 if (!response.ok) {
@@ -44,6 +40,7 @@ function displayProductInstances(data) {
     const firstInstanceContainer = document.getElementById('first-instance');
     const productInstancesContainer = document.getElementById('product-instances');
     productInstancesContainer.innerHTML = '';
+    firstInstanceContainer.innerHTML = '';
     const { instances } = data;
 
     instances.sort((a, b) => a.price - b.price);
@@ -51,19 +48,26 @@ function displayProductInstances(data) {
     instances.forEach((instance, index) => {
         const instanceElement = document.createElement('div');
         instanceElement.classList.add('product-instance');
-        if (instance.source === 'mega')
-            instance.source = 'mega image'
+        if (instance.source === 'mega') {
+            instance.source = 'mega image';
+        }
+        if(instance.price&&instance.oldPrice&&instance.discount===null)
+        {
+            instance.discount=`-${parseInt((1-(instance.price/instance.oldPrice))*100)}%`;
+        }
         instanceElement.innerHTML = `
             <div class="product-instance-content">
-             <img src="${instance.image_url}" alt="${instance.name}">
+                <img src="${instance.image_url}" alt="${instance.name}">
             </div>           
-                <div class="details">
-                    <p><strong>${instance.name}</p>
-                    <p>${instance.brand}</strong></p>
-                    <p>${instance.source.toUpperCase()}</p>
-                    <p>${instance.price} RON</p>
-                    <p>${instance.quantity}</p>
-                </div>
+            <div class="details">
+                <p><strong>${instance.name}</strong></p>
+                <p>${instance.brand}</p>
+                <p>${instance.source.toUpperCase()}</p>
+                ${instance.discount ? `<p>${instance.discount}</p>` : ''}
+                ${instance.oldPrice ? `<p><del>${instance.oldPrice} RON</del></p>` : ''}
+                <p>${instance.price} RON</p>
+                <p>${instance.quantity}</p>
+            </div>
         `;
 
         if (index === 0) {

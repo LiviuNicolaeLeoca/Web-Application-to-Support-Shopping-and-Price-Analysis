@@ -1,6 +1,0 @@
-https://www.auchan.ro/promotii/profita?initialMap=productClusterIds&initialQuery=2007&map=category-1,category-1,category-1,category-1,category-1,productclusternames&query=/bacanie/bauturi-si-tutun/brutarie-cofetarie-gastro/fructe-si-legume/lactate-carne-mezeluri---peste/categorie-promotii----profita&searchState
-
-
-https://www.mega-image.ro/search/promotii?q=promotions%3Arelevance%3ArootCategoryNameFacet%3AApa%2Bsi%2Bsucuri%3ArootCategoryNameFacet%3ABauturi%3ArootCategoryNameFacet%3ADulciuri%2Bsi%2Bsnacks%3ArootCategoryNameFacet%3AFructe%2Bsi%2Blegume%2Bproaspete%3ArootCategoryNameFacet%3ALactate%2Bsi%2Boua%3ArootCategoryNameFacet%3AMezeluri%252C%2Bcarne%2Bsi%2Bready%2Bmeal%3ArootCategoryNameFacet%3APaine%252C%2Bcafea%252C%2Bcereale%2Bsi%2Bmic%2Bdejun%3ArootCategoryNameFacet%3AProduse%2Bcongelate%3ArootCategoryNameFacet%3AIngrediente%2Bculinare&utm_campaign=Toate%20promotiile&utm_medium=label%20banner&utm_source=promotii%20mega-image
-
-Lidl catalog json

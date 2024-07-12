@@ -1,20 +1,25 @@
-const express = require('express');
-const sqlite3 = require('sqlite3');
-const path = require('path');
-const { open } = require('sqlite');
-const { exec } = require('child_process');
+import express from 'express';
+import path from 'path';
+import { open } from 'sqlite';
+import sqlite3 from 'sqlite3';
+import { exec } from 'child_process';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
 const PORT = process.env.PORT || 3000;
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const app = express();
 
 app.use(express.static(path.join(__dirname, 'frontend')));
 app.use(express.json());
 
-sources = ['mega', 'penny', 'auchan', 'kaufland']
+const sources = ['mega', 'penny', 'auchan', 'kaufland'];
 async function initDb() {
     try {
         const db = await open({
-            filename: './backend/similar_products.db',
+            filename: './backend/similar_products1.db',
             driver: sqlite3.Database
         });
         return db;
@@ -69,23 +74,26 @@ app.get('/api/product_details', async (req, res) => {
         const db = await initDb();
 
         const query = `
-            SELECT sp.*, 
-                   mega.name AS mega_productName, mega.brand AS mega_productBrand, 
-                   mega.quantity AS mega_productQuantity, mega.image_url AS mega_productImage,
-                   penny.name AS penny_productName, penny.brand AS penny_productBrand,
-                   penny.quantity AS penny_productQuantity, penny.image_url AS penny_productImage,
-                   auchan.name AS auchan_productName, auchan.brand AS auchan_productBrand,
-                   auchan.quantity AS auchan_productQuantity, auchan.image_url AS auchan_productImage,
-                   kaufland.name AS kaufland_productName, kaufland.brand AS kaufland_productBrand,
-                   kaufland.quantity AS kaufland_productQuantity, kaufland.image_url AS kaufland_productImage
-            FROM similar_products sp
-            LEFT JOIN mega_products mega ON sp.id = mega.similar_product_id
-            LEFT JOIN penny_products penny ON sp.id = penny.similar_product_id
-            LEFT JOIN auchan_products auchan ON sp.id = auchan.similar_product_id
-            LEFT JOIN kaufland_products kaufland ON sp.id = kaufland.similar_product_id
-            WHERE sp.id = ?
-        `;
-
+        SELECT sp.*, 
+               mega.name AS mega_productName, mega.brand AS mega_productBrand, 
+               mega.quantity AS mega_productQuantity, mega.image_url AS mega_productImage,
+               mega.discount AS mega_productDiscount, mega.oldPrice AS mega_productOldPrice,
+               penny.name AS penny_productName, penny.brand AS penny_productBrand,
+               penny.quantity AS penny_productQuantity, penny.image_url AS penny_productImage,
+               penny.discount AS penny_productDiscount, penny.oldPrice AS penny_productOldPrice,
+               auchan.name AS auchan_productName, auchan.brand AS auchan_productBrand,
+               auchan.quantity AS auchan_productQuantity, auchan.image_url AS auchan_productImage,
+               auchan.discount AS auchan_productDiscount, auchan.oldPrice AS auchan_productOldPrice,
+               kaufland.name AS kaufland_productName, kaufland.brand AS kaufland_productBrand,
+               kaufland.quantity AS kaufland_productQuantity, kaufland.image_url AS kaufland_productImage,
+               kaufland.discount AS kaufland_productDiscount, kaufland.oldPrice AS kaufland_productOldPrice
+        FROM similar_products sp
+        LEFT JOIN mega_products mega ON sp.id = mega.similar_product_id
+        LEFT JOIN penny_products penny ON sp.id = penny.similar_product_id
+        LEFT JOIN auchan_products auchan ON sp.id = auchan.similar_product_id
+        LEFT JOIN kaufland_products kaufland ON sp.id = kaufland.similar_product_id
+        WHERE sp.id = ?
+    `;
         const productDetails = await db.get(query, productId);
 
         if (!productDetails) {
@@ -107,6 +115,8 @@ app.get('/api/product_details', async (req, res) => {
                 source,
                 name: instance.name,
                 price: instance.price,
+                oldPrice:instance.oldPrice,
+                discount:instance.discount,
                 brand: instance.brand,
                 quantity: instance.quantity,
                 image_url: instance.image_url
@@ -155,6 +165,8 @@ for (const source of sources) {
                 source,
                 name: row.name,
                 price: row.price,
+                oldPrice:row.oldPrice,
+                discount:row.discount,
                 brand: row.brand,
                 quantity: row.quantity,
                 image_url: row.image_url
@@ -184,15 +196,6 @@ for (const source1 of sources1) {
                 return res.status(500).json({ error: `Error executing ${source1.script}` });
             }
             res.json({ message: `Scraping for ${source1.name} completed successfully`, stdout, stderr });
-        });
-        const commandMain = 'python3 ./backend/main.py';
-        exec(commandMain, (error, stdout, stderr) => {
-            if (error) {
-                console.error('Error executing main.py:', error);
-                return res.status(500).json({ error: 'Error executing main.py' });
-            }
-            console.log('main.py execution completed');
-            res.json({ message: 'Scraping for all supermarkets and main.py execution completed successfully', stdout, stderr });
         });
     });
 }

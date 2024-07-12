@@ -11,14 +11,14 @@ async function insertProductsIntoDatabase(products) {
           brand TEXT,
           quantity TEXT,
           price TEXT,
-          old_price TEXT,
+          oldPrice TEXT,
           discount TEXT,
           loyalty_discount TEXT,
           availability TEXT,
           image_url TEXT
       )`);
 
-    const insertStmt = db.prepare(`INSERT INTO products (name, brand, quantity, price, old_price, discount, loyalty_discount, availability, image_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`);
+    const insertStmt = db.prepare(`INSERT INTO products (name, brand, quantity, price, oldPrice, discount, loyalty_discount, availability, image_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`);
     for (const product of products) {
       const { name, brand, quantity, price, oldPrice, discount, loyaltyDiscount, availability, image_url } = product;
       insertStmt.run(name, brand, quantity, price, oldPrice, discount, loyaltyDiscount, availability, image_url);
@@ -82,17 +82,17 @@ async function scrapeProducts(page, brandNames) {
           brand = brandNames.find(brandName => productName.toLowerCase().includes(brandName.toLowerCase()));
           if (brand) {
             productName = productName.replace(new RegExp(brand, 'gi'), '').trim();
+          }
         }
-        }
+        
+        const quantityPattern = /(\d+(\.\d+)?\s*(x\s*\d+(\.\d+)?)?\s*(g|kg|l|ml|plicuri|bucati|capsule|bauturi|buc|bax)\b)|(\d+\s*(in)?\s*\d+\s*(in)?\s*\d+)|(\d+\+\d+\s*x\s*\d+(\.\d+)?\s*(g|kg|l|ml|plicuri|bucati|capsule|bauturi|buc)\b)/gi;
 
-        const quantityPattern = /(\d+(\.\d+)?\s*(x\s*\d+(\.\d+)?)?\s*(g|kg|l|ml|plicuri|bucati|capsule|bauturi|buc)\b)|(\d+\s*(in)?\s*\d+\s*(in)?\s*\d+)/gi;
         const quantityMatches = productName.match(quantityPattern);
         if (quantityMatches) {
           productQuantity = quantityMatches.join(', ');
-
           productName = productName.replace(quantityPattern, '').trim();
         }
-
+        
         if (productQuantity == null) {
           const lastCommaIndex = productName.lastIndexOf(',');
           if (lastCommaIndex !== -1) {
@@ -100,12 +100,13 @@ async function scrapeProducts(page, brandNames) {
             productName = productName.slice(0, lastCommaIndex).trim();
           }
         }
+        
         productName = productName.replace(/,/g, '').trim();
-        let substringToRemove=["sticla","doza","capsule" ]
+        let substringToRemove = ["sticla", "doza", "capsule"];
         substringToRemove.forEach(substringToRemove => {
           const escapedSubstring = substringToRemove.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
           const regex = new RegExp(`\\b${escapedSubstring}\\b`, 'gi');
-          productName= productName.replace(regex, '').trim();
+          productName = productName.replace(regex, '').trim();
         });
 
         if (productName.match(/ \+\/-$/)) {

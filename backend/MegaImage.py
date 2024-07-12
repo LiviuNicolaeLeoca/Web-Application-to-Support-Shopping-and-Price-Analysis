@@ -118,10 +118,12 @@ df['images'] = df['images'].fillna('').apply(safe_literal_eval)
 base_url = 'https://static.mega-image.ro'
 df['images'] = [[base_url + img['url'] for img in images] for images in df['images']]
 
-df['quantity'] = df['name'].str.extract(r'(\d+(\.\d+)?\s*(x\s*\d+(\.\d+)?)?\s*(g|kg|l|L|ml|plicuri|bucati|capsule|buc)\b)').iloc[:, 0]
+quantity_pattern = r'(\d+(\.\d+)?\s*(\+\d+)?\s*(x\s*\d+(\.\d+)?)?\s*(g|kg|l|L|ml|plicuri|bucati|bucata|capsule|buc)\b)'
 
-df['name'] = df['name'].replace(r'(\d+(\.\d+)?\s*(x\s*\d+(\.\d+)?)?\s*(g|kg|l|L|ml|plicuri|bucati|capsule|buc)\b)', '', regex=True)
+df['quantity'] = df['name'].str.extract(quantity_pattern, expand=False).iloc[:, 0]
 
+df['name'] = df['name'].replace(quantity_pattern, '', regex=True)
+df['name'] = df['name'].replace(',', '', regex=True)
 print(df.head())
 
 df.to_csv("./backend/mega_image_db.csv", index=False)

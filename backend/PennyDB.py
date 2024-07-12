@@ -86,10 +86,12 @@ for page_number in range(0, 20):
 
 df = pd.DataFrame(all_products)
 df.dropna(axis=1, how='all', inplace=True)
-df=df.iloc[:,:-9]
+#df=df.iloc[:,:-9]
 
 df['oldPrice'] = df['price'].apply(lambda x: x.get('crossed') if isinstance(x, dict) else None)
-df['discountPercentage'] = df['price'].apply(lambda x: x.get('discountPercentage') if isinstance(x, dict) else None)
+df['discountPercentage'] = df['price'].apply(
+    lambda x: str(x['discountPercentage']) + '%' if isinstance(x, dict) and 'discountPercentage' in x else None
+)
 df['loyaltyValue'] = df['price'].apply(lambda x: x.get('loyalty').get('value') if isinstance(x, dict) and x.get('loyalty') else None)
 df['value'] = df['price'].apply(lambda x: x.get('regular').get('value') if isinstance(x, dict) else None)
 
