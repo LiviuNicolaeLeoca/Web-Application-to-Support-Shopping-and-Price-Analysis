@@ -1,4 +1,3 @@
-/* Reset and basic styling */
 body {
     font-family: Arial, sans-serif;
     margin: 0;
@@ -7,7 +6,6 @@ body {
     overflow-x: hidden;
 }
 
-/* Header styling */
 .header-content {
     background-color: #333;
     color: #fff;
@@ -49,7 +47,6 @@ nav ul li a:hover {
     color: #ffd700;
 }
 
-/* Main wrapper for the entire page */
 .body-wrapper {
     width: 100%;
     max-width: 1500px;
@@ -59,10 +56,9 @@ nav ul li a:hover {
     justify-content: center;
     align-items: center;
     flex-wrap: wrap;
-    margin: 80px auto 0 auto; /* Adjust margin-top to avoid overlap with fixed header */
+    margin: 80px auto 0 auto;
 }
 
-/* Similar products section */
 #similar-products {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -76,7 +72,6 @@ nav ul li a:hover {
     margin: 0 auto;
 }
 
-/* Product card styling */
 .product {
     position: relative;
     background-color: #ffffff;

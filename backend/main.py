@@ -226,7 +226,7 @@ def compare_products_using_jaccard(products_list: List[List[Dict[str, Any]]], co
 
                         if product2_key not in matched and product1_quantity == product2_quantity and product1_brand == product2_brand:
                             jaccard_sim = jaccard_similarity(product1_name, product2_name)
-                            if jaccard_sim > 0.666:
+                            if jaccard_sim > 0.7:
                                 unique_products[product1_key]['products'].append(product2)
                                 unique_products[product1_key]['allPrices'][product2['source']] = product2['price']
                                 unique_products[product1_key]['image_urls'][product2['source']] = product2['image_url']

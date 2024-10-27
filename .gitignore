@@ -6,3 +6,9 @@ backend/carrefour_products_db.csv
 backend/test.py
 proxy-server/node_modules
 notite.txt
+backend/AuchanProducts.db
+backend/KauflandProducts.db
+
+backend/mega_image_db.csv
+backend/penny_products_db.csv
+backend/similar_products1.db
